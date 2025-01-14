@@ -22,4 +22,9 @@ public class ProductDto {
     private String imageUrl;
     private CategoryDto category;
 
+    private BigDecimal discountPrice;
+
+    private Long qty;
+    private Integer productSize;
+
 }
