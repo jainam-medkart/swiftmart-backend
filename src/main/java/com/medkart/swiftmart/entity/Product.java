@@ -23,7 +23,7 @@ public class Product {
     private BigDecimal mrp;
 
     private Long qty;
-    private Integer productSize;
+    private Long productSize;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")

@@ -25,7 +25,7 @@ public class ProductDto {
     private BigDecimal discountPrice;
 
     private Long qty;
-    private Integer productSize;
+    private Long productSize;
 
     public Long getId() {
         return id;
@@ -91,11 +91,11 @@ public class ProductDto {
         this.qty = qty;
     }
 
-    public Integer getProductSize() {
+    public Long getProductSize() {
         return productSize;
     }
 
-    public void setProductSize(Integer productSize) {
+    public void setProductSize(Long productSize) {
         this.productSize = productSize;
     }
 }

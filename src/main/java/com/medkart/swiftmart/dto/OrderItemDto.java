@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 public class OrderItemDto {
 
     private Long id;
-    private int quantity;
+    private Long quantity;
     private BigDecimal price;
     private BigDecimal mrp;
     private String status;
