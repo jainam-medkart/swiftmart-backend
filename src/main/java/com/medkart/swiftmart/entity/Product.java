@@ -20,7 +20,7 @@ public class Product {
     private String imageUrl;
 
     private BigDecimal price;
-    private BigDecimal discountPrice;
+    private BigDecimal mrp;
 
     private Long qty;
     private Integer productSize;

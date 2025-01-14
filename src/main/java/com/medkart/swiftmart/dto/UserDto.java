@@ -20,7 +20,8 @@ public class UserDto {
     private String name;
     private String password;
     private String role;
-    private List<OrderItemDto> orderItemDtoList;
+    private String phoneNumber;
+    private List<OrderItemDto> orderItemList;
     private AddressDto address;
 
 }

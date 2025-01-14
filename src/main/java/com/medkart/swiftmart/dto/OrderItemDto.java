@@ -23,6 +23,7 @@ public class OrderItemDto {
     private Long id;
     private int quantity;
     private BigDecimal price;
+    private BigDecimal mrp;
     private String status;
     private UserDto user;
     private ProductDto product;
