@@ -22,7 +22,7 @@ public class ProductDto {
     private String imageUrl;
     private CategoryDto category;
 
-    private BigDecimal discountPrice;
+    private BigDecimal mrp;
 
     private Long qty;
     private Long productSize;
@@ -75,12 +75,12 @@ public class ProductDto {
         this.category = category;
     }
 
-    public BigDecimal getDiscountPrice() {
-        return discountPrice;
+    public BigDecimal getMrp() {
+        return mrp;
     }
 
-    public void setDiscountPrice(BigDecimal discountPrice) {
-        this.discountPrice = discountPrice;
+    public void setMrp(BigDecimal mrp) {
+        this.mrp = mrp;
     }
 
     public Long getQty() {

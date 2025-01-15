@@ -41,6 +41,7 @@ public class UserService {
                 .name(regReq.getName())
                 .email(regReq.getEmail())
                 .password(passwordEncoder.encode(regReq.getPassword()))
+                .phoneNumber(regReq.getPhoneNumber())
                 .role(role)
                 .build();
 

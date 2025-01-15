@@ -88,4 +88,14 @@ public class CategoryService {
                 .build();
     }
 
+    public Response updateCategory(Long categoryId, CategoryDto categoryRequest) {
+        Category category = categoryRepo.findById(categoryId).orElseThrow(()-> new NotFoundException("Category Not Found"));
+        category.setName(categoryRequest.getName());
+        categoryRepo.save(category);
+        return Response.builder()
+                .status(200)
+                .message("category updated successfully")
+                .build();
+    }
+
 }

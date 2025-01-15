@@ -36,6 +36,7 @@ public class ProductService {
         product.setMrp(mrp);
         product.setQty(qty);
         product.setProductSize(productSize);
+        product.setCategory(category);
 
         productRepo.save(product);
         return Response.builder()
@@ -44,8 +45,8 @@ public class ProductService {
                 .build();
     }
 
-    public Response updateProduct(Long categoryId , String image, String name, String description, BigDecimal price, BigDecimal mrp, Long qty, Long productSize) {
-        Product product = productRepo.findById(categoryId).orElseThrow(()-> new NotFoundException("Product Not Found"));
+    public Response updateProduct(Long productId , Long categoryId , String image, String name, String description, BigDecimal price, BigDecimal mrp, Long qty, Long productSize) {
+        Product product = productRepo.findById(productId).orElseThrow(()-> new NotFoundException("Product Not Found"));
 
         boolean isUpdated = false;
 
@@ -124,14 +125,18 @@ public class ProductService {
 
     public Response getProductsByCategory(Long categoryId) {
         List<Product> products = productRepo.findByCategoryId(categoryId);
-        if(products.isEmpty())
+        if(products.isEmpty()){
             throw new NotFoundException("No Products found for this category");
+        }
+        List<ProductDto> productDtoList = products.stream()
+                .map(entityDtoMapper::mapProductToDtoBasic)
+                .collect(Collectors.toList());
 
-        List<ProductDto> productDtos = products.stream().map(entityDtoMapper::mapProductToDtoBasic).toList();
         return Response.builder()
                 .status(200)
-                .productList(productDtos)
+                .productList(productDtoList)
                 .build();
+
     }
 
     public Response searchProduct(String searchValue) {

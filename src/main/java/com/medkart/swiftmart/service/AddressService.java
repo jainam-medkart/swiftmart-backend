@@ -19,28 +19,22 @@ public class AddressService {
         User user = userService.getLoginUser();
         Address address = user.getAddress();
 
-        if(address == null){
+        if (address == null){
             address = new Address();
             address.setUser(user);
         }
+        if (addressDto.getStreet() != null) address.setStreet(addressDto.getStreet());
+        if (addressDto.getCity() != null) address.setCity(addressDto.getCity());
+        if (addressDto.getState() != null) address.setState(addressDto.getState());
+        if (addressDto.getZipCode() != null) address.setZipCode(addressDto.getZipCode());
+        if (addressDto.getCountry() != null) address.setCountry(addressDto.getCountry());
 
-        if(addressDto.getStreet() != null)
-            address.setStreet(addressDto.getStreet());
-        if(addressDto.getCity() != null)
-            address.setCity(addressDto.getCity());
-        if(addressDto.getState() != null)
-            address.setState(addressDto.getState());
-        if(address.getZipCode() != null)
-            address.setZipCode(addressDto.getZipCode());
-        if(address.getCountry() != null)
-            address.setCountry(addressDto.getCountry());
+        addressRepo.save(address);
 
-        address = addressRepo.save(address);
-
-        String message = (user.getAddress() == null) ? "Address Saved Successfully" : "Address Updated Successfully";
+        String message = (user.getAddress() == null) ? "Address successfully created" : "Address successfully updated";
         return Response.builder()
                 .status(200)
-                .message("Address Updated Successfully")
+                .message(message)
                 .build();
     }
 

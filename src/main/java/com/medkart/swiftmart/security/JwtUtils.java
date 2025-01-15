@@ -26,12 +26,10 @@ public class JwtUtils {
 
     private SecretKey key;
 
-
-
     @PostConstruct
     private void init(){
         byte[] keyBytes = secretJwtString.getBytes(StandardCharsets.UTF_8);
-        this.key = new SecretKeySpec(keyBytes, "AES");
+        this.key = new SecretKeySpec(keyBytes, "HmacSHA256");
     }
 
     public String generateToken(User user){
@@ -64,6 +62,4 @@ public class JwtUtils {
     private boolean isTokenExpired(String token){
         return extractClaims(token, Claims::getExpiration).before(new Date());
     }
-
-
 }
