@@ -18,6 +18,8 @@ public class Category {
     @Column(unique = true)
     private String name;
 
+    private String image;
+
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Product> productList;
 

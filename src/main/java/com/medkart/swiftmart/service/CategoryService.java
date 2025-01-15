@@ -30,6 +30,7 @@ public class CategoryService {
         // Create and save the new category
         Category category = new Category();
         category.setName(categoryDto.getName());
+        category.setImage(categoryDto.getImage());
         categoryRepo.save(category);
 
         return Response.builder()
