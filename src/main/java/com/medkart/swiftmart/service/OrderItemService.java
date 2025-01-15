@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,51 +34,124 @@ public class OrderItemService {
     private final OrderItemRepo orderItemRepo;
     private final EntityDtoMapper entityDtoMapper;
     private final UserService userService;
+    private final ProductService productService;
 
+//    public Response placeOrder(OrderRequest orderRequest) {
+//        User user = userService.getLoginUser();
+//        List<OrderItem> orderItems = orderRequest.getItems().stream()
+//                .map(orderItemRequest -> {
+//                    Product product = productRepo.findById(orderItemRequest.getProductId())
+//                            .orElseThrow(() -> new NotFoundException("Product not found with id: " + orderItemRequest.getProductId()));
+//
+//                    OrderItem orderItem = new OrderItem();
+//                    orderItem.setProduct(product);
+//                    orderItem.setQuantity(orderItemRequest.getQuantity());
+//                    orderItem.setStatus(OrderStatus.PENDING);
+//                    orderItem.setPrice(product.getPrice());
+//                    orderItem.setMrp(product.getMrp());
+//
+//
+//                    // Check if requested quantity exceeds the product stock
+//                    if (orderItemRequest.getQuantity() > product.getQty()) {
+//                        orderItem.setStatus(OrderStatus.CANCELLED); // Mark as rejected
+//                        orderItem.setPrice(BigDecimal.ZERO); // Set price to zero
+//                    } else {
+//                        orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(orderItemRequest.getQuantity())));
+//                        orderItem.setStatus(OrderStatus.PENDING);
+//                    }
+//
+//                    orderItem.setUser(user);
+//                    return orderItem;
+//                }).toList();
+//
+//        BigDecimal totalPrice = orderRequest.getTotalPrice() != null && orderRequest.getTotalPrice().compareTo(BigDecimal.ZERO) > 0
+//                ? orderRequest.getTotalPrice()
+//                : orderItems.stream().filter(orderItem -> orderItem.getStatus() != OrderStatus.CANCELLED)
+//                .map(OrderItem::getPrice)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//        Order order = new Order();
+//        order.setOrderItemList(orderItems);
+//        order.setTotalPrice(totalPrice);
+//
+//        // Setting order reference in each OrderItem
+//        orderItems.forEach(orderItem -> orderItem.setOrder(order));
+//
+//        orderRepo.save(order);
+//
+//        return Response.builder()
+//                .status(200)
+//                .message("Order Placed Successfully")
+//                .build();
+//    }
     public Response placeOrder(OrderRequest orderRequest) {
-        User user = userService.getLoginUser();
-        List<OrderItem> orderItems = orderRequest.getItems().stream()
-                .map(orderItemRequest -> {
-                    Product product = productRepo.findById(orderItemRequest.getProductId())
-                            .orElseThrow(() -> new NotFoundException("Product not found with id: " + orderItemRequest.getProductId()));
 
-                    OrderItem orderItem = new OrderItem();
-                    orderItem.setProduct(product);
-                    orderItem.setQuantity(orderItemRequest.getQuantity());
+    User user = userService.getLoginUser();
 
-                    // Check if requested quantity exceeds the product stock
-                    if (orderItemRequest.getQuantity() > product.getQty()) {
-                        orderItem.setStatus(OrderStatus.CANCELLED); // Mark as rejected
-                        orderItem.setPrice(BigDecimal.ZERO); // Set price to zero
-                    } else {
-                        orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(orderItemRequest.getQuantity())));
-                        orderItem.setStatus(OrderStatus.PENDING);
-                    }
+    // Map and validate order request items
+    List<OrderItem> orderItems = orderRequest.getItems().stream().map(orderItemRequest -> {
+        // Fetch product details
+        Product product = productRepo.findById(orderItemRequest.getProductId())
+                .orElseThrow(() -> new NotFoundException("Product Not Found"));
 
-                    orderItem.setUser(user);
-                    return orderItem;
-                }).toList();
+        // Check stock availability
+        if (orderItemRequest.getQuantity() > product.getQty()) {
+            throw new IllegalArgumentException(
+                    "Insufficient stock for product: " + product.getName()
+            );
+        }
 
-        BigDecimal totalPrice = orderRequest.getTotalPrice() != null && orderRequest.getTotalPrice().compareTo(BigDecimal.ZERO) > 0
-                ? orderRequest.getTotalPrice()
-                : orderItems.stream().filter(orderItem -> orderItem.getStatus() != OrderStatus.CANCELLED)
-                .map(OrderItem::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Map to OrderItem
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProduct(product);
+        orderItem.setQuantity(orderItemRequest.getQuantity());
+        orderItem.setMrp(product.getMrp());
+        orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(orderItemRequest.getQuantity()))); // Set price based on quantity
+        orderItem.setStatus(OrderStatus.PENDING);
+        orderItem.setUser(user);
+        return orderItem;
 
-        Order order = new Order();
-        order.setOrderItemList(orderItems);
-        order.setTotalPrice(totalPrice);
+    }).collect(Collectors.toList());
 
-        // Setting order reference in each OrderItem
-        orderItems.forEach(orderItem -> orderItem.setOrder(order));
+    // Verify total stock before updating
+    orderItems.forEach(orderItem -> {
+        Product product = orderItem.getProduct();
+        productService.updateProduct(
+                product.getId(),
+                product.getCategory() != null ? product.getCategory().getId() : null,
+                product.getImageUrl(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getMrp(),
+                product.getQty() - orderItem.getQuantity(), // Reduce quantity
+                product.getProductSize()
+        );
+    });
 
-        orderRepo.save(order);
+    // Calculate total price
+    BigDecimal totalPrice = orderRequest.getTotalPrice() != null && orderRequest.getTotalPrice().compareTo(BigDecimal.ZERO) > 0
+            ? orderRequest.getTotalPrice()
+            : orderItems.stream().map(OrderItem::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return Response.builder()
-                .status(200)
-                .message("Order Placed Successfully")
-                .build();
-    }
+    // Create order entity
+    Order order = new Order();
+    order.setOrderItemList(orderItems);
+    order.setTotalPrice(totalPrice);
+
+    // Set order reference in each OrderItem
+    orderItems.forEach(orderItem -> orderItem.setOrder(order));
+
+    // Save the order
+    orderRepo.save(order);
+
+    return Response.builder()
+            .status(200)
+            .message("Order was successfully placed")
+            .build();
+}
+
+
 
     public Response updateOrderItemStatus(Long orderItemId , String status) {
         OrderItem orderItem = orderItemRepo.findById(orderItemId)
@@ -92,26 +166,48 @@ public class OrderItemService {
                 .build();
     }
 
-    public Response filterOrderItems(OrderStatus status , LocalDateTime startDate, LocalDateTime endDate, Long itemId, Pageable pageable) {
+//    public Response filterOrderItems(OrderStatus status , LocalDateTime startDate, LocalDateTime endDate, Long itemId, Pageable pageable) {
+//        Specification<OrderItem> spec = Specification.where(OrderItemSpecification.hasStatus(status))
+//                .and(OrderItemSpecification.createdBetween(startDate, endDate))
+//                .and(OrderItemSpecification.hasItemId(itemId));
+//        Page<OrderItem> orderItemPage = orderItemRepo.findAll(spec, pageable);
+//
+//        if(orderItemPage.isEmpty()) {
+//            return Response.builder()
+//                    .status(200)
+//                    .message("No Order Items Found")
+//                    .build();
+//        }
+//
+//        List<OrderItem> orderItemList = orderItemPage.getContent();
+//        List<OrderItemDto> orderItemDtoList = orderItemList.stream().map(entityDtoMapper::mapOrderItemToDtoBasic).toList();
+//
+//        return Response.builder()
+//                .status(200)
+//                .orderItemList(orderItemDtoList)
+//                .build();
+//    }
+    public Response filterOrderItems(OrderStatus status, LocalDateTime startDate, LocalDateTime endDate, Long itemId, Pageable pageable) {
         Specification<OrderItem> spec = Specification.where(OrderItemSpecification.hasStatus(status))
                 .and(OrderItemSpecification.createdBetween(startDate, endDate))
                 .and(OrderItemSpecification.hasItemId(itemId));
+
         Page<OrderItem> orderItemPage = orderItemRepo.findAll(spec, pageable);
 
-        if(orderItemPage.isEmpty()) {
-            return Response.builder()
-                    .status(200)
-                    .message("No Order Items Found")
-                    .build();
+        if (orderItemPage.isEmpty()){
+            throw new NotFoundException("No Order Found");
         }
-
-        List<OrderItem> orderItemList = orderItemPage.getContent();
-        List<OrderItemDto> orderItemDtoList = orderItemList.stream().map(entityDtoMapper::mapOrderItemToDtoBasic).toList();
+        List<OrderItemDto> orderItemDtos = orderItemPage.getContent().stream()
+                .map(entityDtoMapper::mapOrderItemToDtoPlusProductAndUser)
+                .collect(Collectors.toList());
 
         return Response.builder()
                 .status(200)
-                .orderItemList(orderItemDtoList)
+                .orderItemList(orderItemDtos)
+                .totalPage(orderItemPage.getTotalPages())
+                .totalElements(orderItemPage.getTotalElements())
                 .build();
     }
 
 }
+
