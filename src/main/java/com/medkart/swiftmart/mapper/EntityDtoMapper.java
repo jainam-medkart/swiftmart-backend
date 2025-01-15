@@ -63,6 +63,10 @@ public class EntityDtoMapper {
         productDto.setDescription(product.getDescription());
         productDto.setPrice(product.getPrice());
         productDto.setImageUrl(product.getImageUrl());
+        productDto.setMrp(product.getMrp());
+        productDto.setQty(product.getQty());
+        productDto.setProductSize(product.getProductSize());
+        productDto.setCategory(mapCategoryToDtoBasic(product.getCategory()));
         return productDto;
     }
 
