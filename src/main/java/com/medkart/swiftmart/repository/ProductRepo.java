@@ -20,6 +20,9 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
     // For the category page
     List<Product> findByCategoryId(Long categoryId);
 
+    List<Product> findByIdOrNameContainingIgnoreCase(Long id, String name);
+
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Modifying
     @Query("UPDATE Product p SET p.qty = p.qty - :quantity WHERE p.id = :productId AND p.qty >= :quantity")

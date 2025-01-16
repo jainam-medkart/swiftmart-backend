@@ -74,6 +74,6 @@ public class ProductController {
 
     @GetMapping("/search")
     public ResponseEntity<Response> searchForProduct(@RequestParam String searchValue){
-        return ResponseEntity.ok(productService.searchProduct(searchValue));
+        return ResponseEntity.ok(productService.searchByIdOrName(searchValue));
     }
 }

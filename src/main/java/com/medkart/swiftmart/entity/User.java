@@ -3,6 +3,7 @@ package com.medkart.swiftmart.entity;
 import com.medkart.swiftmart.enums.UserRole;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,7 +34,8 @@ public class User {
     private String password;
 
     @Column(name = "phone_number")
-    @NotBlank(message = "Phone number is required")
+//    @NotBlank(message = "Phone number is required")
+//    @Size(min = 10, max = 10, message = "Phone number should be 10 digits")
     private  String phoneNumber;
 
     @Enumerated(EnumType.STRING)

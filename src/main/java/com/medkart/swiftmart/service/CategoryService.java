@@ -92,6 +92,7 @@ public class CategoryService {
     public Response updateCategory(Long categoryId, CategoryDto categoryRequest) {
         Category category = categoryRepo.findById(categoryId).orElseThrow(()-> new NotFoundException("Category Not Found"));
         category.setName(categoryRequest.getName());
+        category.setImage(categoryRequest.getImage());
         categoryRepo.save(category);
         return Response.builder()
                 .status(200)

@@ -152,4 +152,32 @@ public class ProductService {
                 .build();
     }
 
+
+    public Response searchByIdOrName(String searchValue) {
+        Long id = null;
+
+        // Try to parse searchValue to a Long for id matching
+        try {
+            id = Long.parseLong(searchValue);
+        } catch (NumberFormatException ignored) {
+            // If parsing fails, it means the searchValue is not numeric
+        }
+
+        List<Product> products = productRepo.findByIdOrNameContainingIgnoreCase(id, searchValue);
+
+        if (products.isEmpty()) {
+            throw new NotFoundException("No Products Found");
+        }
+
+        List<ProductDto> productDtos = products.stream()
+                .map(entityDtoMapper::mapProductToDtoBasic)
+                .toList();
+
+        return Response.builder()
+                .status(200)
+                .productList(productDtos)
+                .build();
+    }
+
+
 }

@@ -100,7 +100,9 @@ public class OrderItemService {
         // Check stock availability
         if (orderItemRequest.getQuantity() > product.getQty()) {
             throw new IllegalArgumentException(
-                    "Insufficient stock for product: " + product.getName()
+                    "Insufficient stock for product: " + product.getName() +
+                    ". Requested Quantity: " + orderItemRequest.getQuantity() +
+                    ", Available Stock: " + product.getQty()
             );
         }
 
@@ -133,11 +135,16 @@ public class OrderItemService {
     });
 
     // Calculate total price
-    BigDecimal totalPrice = orderRequest.getTotalPrice() != null && orderRequest.getTotalPrice().compareTo(BigDecimal.ZERO) > 0
-            ? orderRequest.getTotalPrice()
-            : orderItems.stream().map(OrderItem::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+BigDecimal totalPrice = orderRequest.getTotalPrice() != null && orderRequest.getTotalPrice().compareTo(BigDecimal.ZERO) > 0
+        ? orderRequest.getTotalPrice()
+        : orderItems.stream().map(OrderItem::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-    // Create order entity
+if (totalPrice.compareTo(BigDecimal.valueOf(500)) < 0) {
+    return Response.builder()
+            .status(400)
+            .message("Order cannot be placed. Minimum order value is 500.")
+            .build();
+}
     Order order = new Order();
     order.setOrderItemList(orderItems);
     order.setTotalPrice(totalPrice);
@@ -148,10 +155,10 @@ public class OrderItemService {
     // Save the order
     orderRepo.save(order);
 
-    return Response.builder()
-            .status(200)
-            .message("Order was successfully placed")
-            .build();
+return Response.builder()
+        .status(200)
+        .message("Order was successfully placed")
+        .build();
 }
 
 
