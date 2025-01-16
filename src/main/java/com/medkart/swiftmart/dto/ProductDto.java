@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Set;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -20,9 +22,35 @@ public class ProductDto {
     private String description;
     private BigDecimal price;
     private String imageUrl;
+    private Long categoryId;
     private CategoryDto category;
-
+    private Set<String> tags;
     private BigDecimal mrp;
+    private String wsCode;
+
+    public String getWsCode() {
+        return wsCode;
+    }
+
+    public void setWsCode(String wsCode) {
+        this.wsCode = wsCode;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<String> tags) {
+        this.tags = tags;
+    }
 
     private Long qty;
     private Long productSize;

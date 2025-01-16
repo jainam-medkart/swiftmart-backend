@@ -14,6 +14,7 @@ import com.medkart.swiftmart.repository.OrderItemRepo;
 import com.medkart.swiftmart.repository.OrderRepo;
 import com.medkart.swiftmart.repository.ProductRepo;
 import com.medkart.swiftmart.specification.OrderItemSpecification;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -84,95 +85,188 @@ public class OrderItemService {
 //                .message("Order Placed Successfully")
 //                .build();
 //    }
+
+
+    /// SECOND TIME
+
+
+//    public Response placeOrder(OrderRequest orderRequest) {
+//
+//        User user = userService.getLoginUser();
+//        if(user.getAddress() == null){
+//            throw new NotFoundException("Address not found for this user. Please Update your Address first.");
+//        }
+//
+//        // Map and validate order request items
+//        List<OrderItem> orderItems = orderRequest.getItems().stream().map(orderItemRequest -> {
+//            // Fetch product details
+//            Product product = productRepo.findById(orderItemRequest.getProductId())
+//                    .orElseThrow(() -> new NotFoundException("Product Not Found"));
+//
+//            // Check stock availability
+//            if (orderItemRequest.getQuantity() > product.getQty()) {
+//                throw new IllegalArgumentException(
+//                        "Insufficient stock for product: " + product.getName() +
+//                        ". Requested Quantity: " + orderItemRequest.getQuantity() +
+//                        ", Available Stock: " + product.getQty()
+//                );
+//            }
+//
+//            // Map to OrderItem
+//            OrderItem orderItem = new OrderItem();
+//            orderItem.setProduct(product);
+//            orderItem.setQuantity(orderItemRequest.getQuantity());
+//            orderItem.setMrp(product.getMrp());
+//            orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(orderItemRequest.getQuantity()))); // Set price based on quantity
+//            orderItem.setStatus(OrderStatus.PENDING);
+//            orderItem.setUser(user);
+//            return orderItem;
+//
+//        }).collect(Collectors.toList());
+//
+//        // Verify total stock before updating
+//        orderItems.forEach(orderItem -> {
+//            Product product = orderItem.getProduct();
+//            productService.updateProduct(
+//                    product.getId(),
+//                    product.getCategory() != null ? product.getCategory().getId() : null,
+//                    product.getImageUrl(),
+//                    product.getName(),
+//                    product.getDescription(),
+//                    product.getPrice(),
+//                    product.getMrp(),
+//                    product.getQty() - orderItem.getQuantity(), // Reduce quantity
+//                    product.getProductSize()
+//            );
+//    });
+//
+//        // Calculate total price
+//    BigDecimal totalPrice = orderRequest.getTotalPrice() != null && orderRequest.getTotalPrice().compareTo(BigDecimal.ZERO) > 0
+//            ? orderRequest.getTotalPrice()
+//            : orderItems.stream().map(OrderItem::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//    if (totalPrice.compareTo(BigDecimal.valueOf(500)) < 0) {
+//        return Response.builder()
+//                .status(400)
+//                .message("Order cannot be placed. Minimum order value is 500.")
+//                .build();
+//    }
+//        Order order = new Order();
+//        order.setOrderItemList(orderItems);
+//        order.setTotalPrice(totalPrice);
+//
+//        // Set order reference in each OrderItem
+//        orderItems.forEach(orderItem -> orderItem.setOrder(order));
+//
+//        // Save the order
+//        orderRepo.save(order);
+//
+//    return Response.builder()
+//            .status(200)
+//            .message("Order was successfully placed")
+//            .build();
+//    }
+
+
+
+//    public Response updateOrderItemStatus(Long orderItemId , String status) {
+//        OrderItem orderItem = orderItemRepo.findById(orderItemId)
+//                .orElseThrow(() -> new NotFoundException("Order Item not found with id: " + orderItemId));
+//
+//        orderItem.setStatus(OrderStatus.valueOf(status.toUpperCase()));
+//        orderItemRepo.save(orderItem);
+//
+//        return Response.builder()
+//                .status(200)
+//                .message("Order Item Updated Successfully")
+//                .build();
+//    }
+
+
+    @Transactional
     public Response placeOrder(OrderRequest orderRequest) {
+        User user = userService.getLoginUser();
 
-    User user = userService.getLoginUser();
-    if(user.getAddress() == null){
-        throw new NotFoundException("Address not found for this user. Please Update your Address first.");
-    }
+        // Map the request items to OrderItems
+        List<OrderItem> orderItems = orderRequest.getItems().stream().map(orderItemRequest -> {
+            Product product = productRepo.findById(orderItemRequest.getProductId())
+                    .orElseThrow(() -> new NotFoundException("Product not found with id: " + orderItemRequest.getProductId()));
 
-    // Map and validate order request items
-    List<OrderItem> orderItems = orderRequest.getItems().stream().map(orderItemRequest -> {
-        // Fetch product details
-        Product product = productRepo.findById(orderItemRequest.getProductId())
-                .orElseThrow(() -> new NotFoundException("Product Not Found"));
+            // Check total quantity for the product already ordered by the user
+            int totalOrderedQuantity = orderItemRepo.getTotalOrderedQuantityByUserAndProduct(user.getId(), product.getId());
+            long newTotalQuantity = totalOrderedQuantity + orderItemRequest.getQuantity();
 
-        // Check stock availability
-        if (orderItemRequest.getQuantity() > product.getQty()) {
-            throw new IllegalArgumentException(
-                    "Insufficient stock for product: " + product.getName() +
-                    ". Requested Quantity: " + orderItemRequest.getQuantity() +
-                    ", Available Stock: " + product.getQty()
-            );
-        }
+            // Validate that the total items per product don't exceed 5
+            if (newTotalQuantity > 5) {
+                throw new IllegalArgumentException("You can only order up to 5 items per product.");
+            }
 
-        // Map to OrderItem
-        OrderItem orderItem = new OrderItem();
-        orderItem.setProduct(product);
-        orderItem.setQuantity(orderItemRequest.getQuantity());
-        orderItem.setMrp(product.getMrp());
-        orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(orderItemRequest.getQuantity()))); // Set price based on quantity
-        orderItem.setStatus(OrderStatus.PENDING);
-        orderItem.setUser(user);
-        return orderItem;
+            // Check if requested quantity exceeds the available stock
+            if (orderItemRequest.getQuantity() > product.getQty()) {
+                throw new IllegalArgumentException("Requested quantity exceeds available stock for product: " + product.getName());
+            }
 
-    }).collect(Collectors.toList());
+            // Create a new OrderItem
+            OrderItem orderItem = new OrderItem();
+            orderItem.setProduct(product);
+            orderItem.setQuantity(orderItemRequest.getQuantity());
+            orderItem.setStatus(OrderStatus.PENDING);
+            orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(orderItemRequest.getQuantity())));
+            orderItem.setMrp(product.getMrp());
+            orderItem.setUser(user);
 
-    // Verify total stock before updating
-    orderItems.forEach(orderItem -> {
-        Product product = orderItem.getProduct();
-        productService.updateProduct(
-                product.getId(),
-                product.getCategory() != null ? product.getCategory().getId() : null,
-                product.getImageUrl(),
-                product.getName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.getMrp(),
-                product.getQty() - orderItem.getQuantity(), // Reduce quantity
-                product.getProductSize()
-        );
-    });
+            return orderItem;
+        }).toList();
 
-    // Calculate total price
-BigDecimal totalPrice = orderRequest.getTotalPrice() != null && orderRequest.getTotalPrice().compareTo(BigDecimal.ZERO) > 0
-        ? orderRequest.getTotalPrice()
-        : orderItems.stream().map(OrderItem::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Calculate total price
+        BigDecimal totalPrice = orderItems.stream()
+                .map(OrderItem::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-if (totalPrice.compareTo(BigDecimal.valueOf(500)) < 0) {
-    return Response.builder()
-            .status(400)
-            .message("Order cannot be placed. Minimum order value is 500.")
-            .build();
-}
-    Order order = new Order();
-    order.setOrderItemList(orderItems);
-    order.setTotalPrice(totalPrice);
+        // Create a new Order and set its OrderItems
+        Order order = new Order();
+        order.setOrderItemList(orderItems);
+        order.setTotalPrice(totalPrice);
 
-    // Set order reference in each OrderItem
-    orderItems.forEach(orderItem -> orderItem.setOrder(order));
+        orderItems.forEach(orderItem -> orderItem.setOrder(order));
 
-    // Save the order
-    orderRepo.save(order);
-
-return Response.builder()
-        .status(200)
-        .message("Order was successfully placed")
-        .build();
-}
-
-
-
-    public Response updateOrderItemStatus(Long orderItemId , String status) {
-        OrderItem orderItem = orderItemRepo.findById(orderItemId)
-                .orElseThrow(() -> new NotFoundException("Order Item not found with id: " + orderItemId));
-
-        orderItem.setStatus(OrderStatus.valueOf(status.toUpperCase()));
-        orderItemRepo.save(orderItem);
+        // Save the order and OrderItems
+        orderRepo.save(order);
 
         return Response.builder()
                 .status(200)
-                .message("Order Item Updated Successfully")
+                .message("Order placed successfully.")
+                .build();
+    }
+
+
+    @Transactional
+    public Response updateOrderItemStatus(Long orderItemId, String status) {
+        // Fetch the OrderItem by ID
+        OrderItem orderItem = orderItemRepo.findById(orderItemId)
+                .orElseThrow(() -> new NotFoundException("Order Item with ID " + orderItemId + " Not Found"));
+
+        // Parse the provided status
+        OrderStatus newStatus = OrderStatus.valueOf(status.toUpperCase());
+
+        // Handle quantity adjustment only if status is REJECTED or REFUNDED
+        if (newStatus == OrderStatus.CANCELLED || newStatus == OrderStatus.REFUNDED) {
+            Product product = orderItem.getProduct();
+            if (product != null) {
+                // Increase product stock by the order item's quantity
+                product.setQty(product.getQty() + orderItem.getQuantity());
+                productRepo.save(product); // Persist the updated product quantity
+            }
+        }
+
+        // Update the status of the OrderItem
+        orderItem.setStatus(newStatus);
+        orderItemRepo.save(orderItem); // Persist the updated OrderItem
+
+        // Return response with success message
+        return Response.builder()
+                .status(200)
+                .message("Order Item status updated successfully")
                 .build();
     }
 

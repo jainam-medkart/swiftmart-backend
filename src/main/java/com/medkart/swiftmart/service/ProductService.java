@@ -163,7 +163,9 @@ public class ProductService {
             // If parsing fails, it means the searchValue is not numeric
         }
 
-        List<Product> products = productRepo.findByIdOrNameContainingIgnoreCase(id, searchValue);
+//        List<Product> products = productRepo.findByIdOrNameContainingIgnoreCase(id, searchValue);
+
+        List<Product> products = productRepo.findByWsCodeContainingOrNameContainingIgnoreCase(searchValue, searchValue);
 
         if (products.isEmpty()) {
             throw new NotFoundException("No Products Found");

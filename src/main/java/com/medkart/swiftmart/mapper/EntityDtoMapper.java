@@ -67,7 +67,13 @@ public class EntityDtoMapper {
         productDto.setMrp(product.getMrp());
         productDto.setQty(product.getQty());
         productDto.setProductSize(product.getProductSize());
+        productDto.setWsCode(product.getWsCode());
         productDto.setCategory(mapCategoryToDtoBasic(product.getCategory()));
+        productDto.setTags(
+                product.getTags().stream()
+                        .map(Tag::getName)  // Assuming Tag has a getName() method
+                        .collect(Collectors.toSet())
+        );
         return productDto;
     }
 

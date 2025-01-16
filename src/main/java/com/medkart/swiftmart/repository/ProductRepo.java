@@ -22,6 +22,8 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
 
     List<Product> findByIdOrNameContainingIgnoreCase(Long id, String name);
 
+    List<Product> findByWsCodeContainingOrNameContainingIgnoreCase(String wsCode, String name);
+
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Modifying

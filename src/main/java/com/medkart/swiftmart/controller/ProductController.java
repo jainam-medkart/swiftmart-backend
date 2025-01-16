@@ -1,7 +1,18 @@
 package com.medkart.swiftmart.controller;
 
+import com.amazonaws.services.kms.model.NotFoundException;
+import com.medkart.swiftmart.dto.ProductDto;
 import com.medkart.swiftmart.dto.Response;
+import com.medkart.swiftmart.entity.Category;
+import com.medkart.swiftmart.entity.Product;
+import com.medkart.swiftmart.entity.Tag;
+import com.medkart.swiftmart.repository.CategoryRepo;
+import com.medkart.swiftmart.repository.ProductRepo;
+import com.medkart.swiftmart.repository.TagRepo;
+import com.medkart.swiftmart.service.CategoryService;
 import com.medkart.swiftmart.service.ProductService;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.auth.InvalidCredentialsException;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +20,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/product")
@@ -16,6 +30,9 @@ import java.math.BigDecimal;
 public class ProductController {
 
     private final ProductService productService;
+    private final CategoryRepo categoryRepo;
+    private final ProductRepo productRepo;
+    private final TagRepo tagRepo;
 
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -50,6 +67,127 @@ public class ProductController {
     ){
         return ResponseEntity.ok(productService.updateProduct(productId, categoryId, image, name, description, price,mrp , qty , productSize ));
     }
+
+    // Refactor below two functions.
+    @Transactional
+    @PutMapping("/updatetg")
+    public ResponseEntity<Response> updateProduct(@RequestParam Long productId, @Valid @RequestBody ProductDto productDto) {
+        // Fetch the product by ID or throw exception if not found
+        Product product = productRepo.findById(productId)
+                .orElseThrow(() -> new NotFoundException("Product with ID " + productId + " Not Found"));
+
+        // Update fields from DTO if not null
+        if (productDto.getName() != null) {
+            product.setName(productDto.getName());
+        }
+        if (productDto.getDescription() != null) {
+            product.setDescription(productDto.getDescription());
+        }
+        if (productDto.getPrice() != null) {
+            product.setPrice(productDto.getPrice());
+        }
+        if (productDto.getImageUrl() != null) {
+            product.setImageUrl(productDto.getImageUrl());
+        }
+        if (productDto.getMrp() != null) {
+            product.setMrp(productDto.getMrp());
+        }
+        if (productDto.getQty() != null) {
+            product.setQty(productDto.getQty());
+        }
+        if (productDto.getProductSize() != null) {
+            product.setProductSize(productDto.getProductSize());
+        }
+
+        // Update category if a valid category ID is provided
+        if (productDto.getCategoryId() != null) {
+            Category category = categoryRepo.findById(productDto.getCategoryId())
+                    .orElseThrow(() -> new NotFoundException("Category with ID " + productDto.getCategoryId() + " Not Found"));
+            product.setCategory(category);
+        }
+
+        // Update tags if present
+        if (productDto.getTags() != null) {
+            Set<Tag> tags = new HashSet<>();
+            for (String tagName : productDto.getTags()) {
+                Tag tag = tagRepo.findByName(tagName)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepo.save(newTag);
+                        });
+                tags.add(tag);
+            }
+            product.setTags(tags);
+        }
+
+        // Save the updated product
+        Product updatedProduct = productRepo.save(product);
+
+        // Build the response object
+        Response response = Response.builder()
+                .status(200)
+                .message("Product Updated Successfully")
+                .build();
+
+        // Return the response entity
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/createtg")
+    @Transactional
+    public ResponseEntity<Response> createProduct(@Valid @RequestBody ProductDto productDto) {
+        // Fetch category by ID or throw exception if not found
+        Category category = categoryRepo.findById(productDto.getCategoryId())
+                .orElseThrow(() -> new NotFoundException("Category with ID " + productDto.getCategoryId() + " Not Found"));
+
+        // Create new Product and populate fields from DTO
+        Product product = new Product();
+        product.setName(productDto.getName());
+        product.setDescription(productDto.getDescription());
+        product.setPrice(productDto.getPrice());
+        product.setImageUrl(productDto.getImageUrl());
+        product.setCategory(category);
+        product.setMrp(productDto.getMrp());
+        product.setQty(productDto.getQty());
+        product.setProductSize(productDto.getProductSize());
+
+        // Map and persist tags
+        Set<Tag> tags = new HashSet<>();
+        if (productDto.getTags() != null) {
+            for (String tagName : productDto.getTags()) {
+                Tag tag = tagRepo.findByName(tagName)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepo.save(newTag);
+                        });
+                tags.add(tag);
+            }
+        }
+
+        // Associate the tags with the product
+        product.setTags(tags);
+
+        // Save the product
+        Product savedProduct = productRepo.save(product);
+
+        // Build the response object
+        Response response = Response.builder()
+                .status(200)
+                .message("Product Created Successfully")
+                .build();
+
+        // Return the response entity
+        return ResponseEntity.ok(response);
+    }
+
+
+//    @PostMapping("/add-extra-image/{productId}")
+//    @PreAuthorize("hasAuthority('ADMIN')")
+//    public ResponseEntity<Response> deleteProduct(@PathVariable("productId") Long productId, @RequestParam String imageUrl) {
+//
+//    }
 
     @DeleteMapping("/delete/{productId}")
     @PreAuthorize("hasAuthority('ADMIN')")
