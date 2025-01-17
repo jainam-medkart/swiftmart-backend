@@ -1,11 +1,13 @@
 package com.medkart.swiftmart.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.medkart.swiftmart.entity.ExtraImage;
 import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -40,4 +42,7 @@ public class Response {
 
     private OrderItemDto orderItem;
     private List<OrderItemDto> orderItemList;
+
+    private Set<ExtraImageDto> extraImages;
+    private List<ExtraImageDto> data;
 }

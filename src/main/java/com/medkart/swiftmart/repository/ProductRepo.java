@@ -1,5 +1,6 @@
 package com.medkart.swiftmart.repository;
 
+import com.medkart.swiftmart.entity.ExtraImage;
 import com.medkart.swiftmart.entity.Product;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,4 +30,11 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
     @Modifying
     @Query("UPDATE Product p SET p.qty = p.qty - :quantity WHERE p.id = :productId AND p.qty >= :quantity")
     int reduceStock(@Param("productId") Long productId, @Param("quantity") Long quantity);
+
+//    @Query("SELECT e FROM ExtraImage e WHERE e.product.id = :productId")
+//    List<ExtraImage> findExtraImagesByProductId(@Param("productId") Long productId);
+
+    @Query("SELECT e.id, e.url FROM ExtraImage e WHERE e.product.id = :productId")
+    List<Object[]> findExtraImagesByProductId(@Param("productId") Long productId);
+
 }

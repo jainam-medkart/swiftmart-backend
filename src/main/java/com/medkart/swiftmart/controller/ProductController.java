@@ -1,9 +1,12 @@
 package com.medkart.swiftmart.controller;
 
 import com.amazonaws.services.kms.model.NotFoundException;
+import com.cloudinary.Cloudinary;
+import com.medkart.swiftmart.dto.ImageUrlsRequest;
 import com.medkart.swiftmart.dto.ProductDto;
 import com.medkart.swiftmart.dto.Response;
 import com.medkart.swiftmart.entity.Category;
+import com.medkart.swiftmart.entity.ExtraImage;
 import com.medkart.swiftmart.entity.Product;
 import com.medkart.swiftmart.entity.Tag;
 import com.medkart.swiftmart.repository.CategoryRepo;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,6 +37,7 @@ public class ProductController {
     private final CategoryRepo categoryRepo;
     private final ProductRepo productRepo;
     private final TagRepo tagRepo;
+
 
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -213,5 +218,25 @@ public class ProductController {
     @GetMapping("/search")
     public ResponseEntity<Response> searchForProduct(@RequestParam String searchValue){
         return ResponseEntity.ok(productService.searchByIdOrName(searchValue));
+    }
+
+    @PostMapping("/{productId}/add-images")
+    @Transactional
+    public ResponseEntity<Response> addExtraImages(
+            @PathVariable Long productId,
+            @RequestBody ImageUrlsRequest request
+    ) {
+//        productService.addExtraImages(productId, request.getImageUrls());
+        return ResponseEntity.ok(productService.addExtraImages(productId, request.getImageUrls()));
+    }
+
+    @GetMapping("/{productId}/images")
+    public ResponseEntity<Response> getExtraImages(@PathVariable Long productId) {
+        return ResponseEntity.ok(productService.getExtraImages(productId));
+    }
+    @DeleteMapping("/{productId}/delete-image/{imageId}")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<Response> deleteExtraImage(@PathVariable Long productId, @PathVariable Long imageId) {
+        return ResponseEntity.ok(productService.deleteExtraImage(productId, imageId));
     }
 }
