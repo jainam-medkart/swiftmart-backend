@@ -56,6 +56,28 @@ public class UserService {
                 .build();
     }
 
+    public Response registerAdmin(UserDto regReq) {
+        UserRole role = UserRole.ADMIN;
+
+        User user = User.builder()
+                .name(regReq.getName())
+                .email(regReq.getEmail())
+                .password(passwordEncoder.encode(regReq.getPassword()))
+                .phoneNumber(regReq.getPhoneNumber())
+                .role(role)
+                .build();
+
+        User savedUser = userRepo.save(user);
+        String token = jwtUtils.generateToken(savedUser);
+
+        UserDto userDto = entityDtoMapper.mapUserToDtoBasic(savedUser);
+        return Response.builder()
+                .status(200)
+                .message("User Successfully Created")
+                .user(userDto)
+                .build();
+    }
+
 
     public Response loginUser(LoginRequest loginReq) throws InvalidCredentialsException {
         User user = userRepo.findByEmail(loginReq.getEmail())

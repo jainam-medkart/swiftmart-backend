@@ -28,4 +28,9 @@ public class AuthController {
     public ResponseEntity<Response> loginUser(@RequestBody LoginRequest req) throws InvalidCredentialsException {
         return ResponseEntity.ok(userService.loginUser(req));
     }
+
+    @PostMapping("/register-admin")
+    public ResponseEntity<Response> registerAdmin(@RequestBody UserDto registrationReq) {
+        return ResponseEntity.ok(userService.registerAdmin(registrationReq));
+    }
 }
