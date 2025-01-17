@@ -65,7 +65,7 @@ public class Product {
     @Column(name = "ws_code", nullable = false, unique = true, updatable = false)
     private String wsCode;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<ExtraImage> extraImages = new HashSet<>();
 
     // Generate ws_code before persisting the entity

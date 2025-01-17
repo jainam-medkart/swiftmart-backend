@@ -187,6 +187,10 @@ public class OrderItemService {
     public Response placeOrder(OrderRequest orderRequest) {
         User user = userService.getLoginUser();
 
+        if (user.getAddress() == null) {
+            throw new NotFoundException("Address not found for this user. Please Update your Address first.");
+        }
+
         // Map the request items to OrderItems
         List<OrderItem> orderItems = orderRequest.getItems().stream().map(orderItemRequest -> {
             Product product = productRepo.findById(orderItemRequest.getProductId())

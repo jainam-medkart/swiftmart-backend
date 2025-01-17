@@ -22,6 +22,7 @@ public class Response {
     private String token;
     private String role;
     private String expirationTime;
+    private Long productId;
 
     private int totalPage;
     private long totalElements;

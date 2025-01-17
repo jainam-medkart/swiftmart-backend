@@ -180,6 +180,7 @@ public class ProductController {
         // Build the response object
         Response response = Response.builder()
                 .status(200)
+                .productId(product.getId())
                 .message("Product Created Successfully")
                 .build();
 
@@ -222,6 +223,7 @@ public class ProductController {
 
     @PostMapping("/{productId}/add-images")
     @Transactional
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Response> addExtraImages(
             @PathVariable Long productId,
             @RequestBody ImageUrlsRequest request
