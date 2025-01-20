@@ -39,7 +39,7 @@ public class UserService {
 
         User user = User.builder()
                 .name(regReq.getName())
-                .email(regReq.getEmail())
+                .email(regReq.getEmail().toLowerCase())
                 .password(passwordEncoder.encode(regReq.getPassword()))
                 .phoneNumber(regReq.getPhoneNumber())
                 .role(role)
@@ -61,7 +61,7 @@ public class UserService {
 
         User user = User.builder()
                 .name(regReq.getName())
-                .email(regReq.getEmail())
+                .email(regReq.getEmail().toLowerCase())
                 .password(passwordEncoder.encode(regReq.getPassword()))
                 .phoneNumber(regReq.getPhoneNumber())
                 .role(role)

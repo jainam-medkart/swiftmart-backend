@@ -7,6 +7,7 @@ import com.medkart.swiftmart.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.auth.InvalidCredentialsException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,7 @@ public class AuthController {
         return ResponseEntity.ok(userService.loginUser(req));
     }
 
+    @PreAuthorize("hasAuthority('ROOT-ADMIN')")
     @PostMapping("/register-admin")
     public ResponseEntity<Response> registerAdmin(@RequestBody UserDto registrationReq) {
         return ResponseEntity.ok(userService.registerAdmin(registrationReq));

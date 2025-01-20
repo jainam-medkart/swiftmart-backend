@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.auth.InvalidCredentialsException;
 import org.slf4j.ILoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -43,7 +44,7 @@ public class ProductController {
 
 
     @PostMapping("/create")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
     public ResponseEntity<Response> createProduct(
             @RequestParam Long categoryId,
             @RequestParam String image,
@@ -61,7 +62,7 @@ public class ProductController {
     }
 
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
     public ResponseEntity<Response> updateProduct(
             @RequestParam Long productId,
             @RequestParam(required = false) Long categoryId,
@@ -79,7 +80,7 @@ public class ProductController {
     // Refactor below two functions.
     @Transactional
     @PutMapping("/updatetg")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
     public ResponseEntity<Response> updateProduct(@RequestParam Long productId, @Valid @RequestBody ProductDto productDto) {
         // Fetch the product by ID or throw exception if not found
         Product product = productRepo.findById(productId)
@@ -144,54 +145,76 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
+
+//    public ResponseEntity<Response> createProduct(@Valid @RequestBody ProductDto productDto) {
+//        // Fetch category by ID or throw exception if not found
+//        Category category = categoryRepo.findById(productDto.getCategoryId())
+//                .orElseThrow(() -> new NotFoundException("Category with ID " + productDto.getCategoryId() + " Not Found"));
+//
+//        // Create new Product and populate fields from DTO
+//        Product product = new Product();
+//        product.setName(productDto.getName());
+//        product.setDescription(productDto.getDescription());
+//        product.setPrice(productDto.getPrice());
+//        product.setImageUrl(productDto.getImageUrl());
+//        product.setCategory(category);
+//        product.setMrp(productDto.getMrp());
+//        product.setQty(productDto.getQty());
+//        product.setProductSize(productDto.getProductSize());
+//
+//        // Map and persist tags
+//        Set<Tag> tags = new HashSet<>();
+//        if (productDto.getTags() != null) {
+//            for (String tagName : productDto.getTags()) {
+//                Tag tag = tagRepo.findByName(tagName)
+//                        .orElseGet(() -> {
+//                            Tag newTag = new Tag();
+//                            newTag.setName(tagName);
+//                            return tagRepo.save(newTag);
+//                        });
+//                tags.add(tag);
+//            }
+//        }
+//
+//        // Associate the tags with the product
+//        product.setTags(tags);
+//
+//        // Save the product
+//        Product savedProduct = productRepo.save(product);
+//
+//        // Build the response object
+//        Response response = Response.builder()
+//                .status(200)
+//                .productId(product.getId())
+//                .message("Product Created Successfully")
+//                .build();
+//
+//        // Return the response entity
+//        return ResponseEntity.ok(response);
+//    }
+
     @PostMapping("/createtg")
     @Transactional
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
     public ResponseEntity<Response> createProduct(@Valid @RequestBody ProductDto productDto) {
-        // Fetch category by ID or throw exception if not found
-        Category category = categoryRepo.findById(productDto.getCategoryId())
-                .orElseThrow(() -> new NotFoundException("Category with ID " + productDto.getCategoryId() + " Not Found"));
-
-        // Create new Product and populate fields from DTO
-        Product product = new Product();
-        product.setName(productDto.getName());
-        product.setDescription(productDto.getDescription());
-        product.setPrice(productDto.getPrice());
-        product.setImageUrl(productDto.getImageUrl());
-        product.setCategory(category);
-        product.setMrp(productDto.getMrp());
-        product.setQty(productDto.getQty());
-        product.setProductSize(productDto.getProductSize());
-
-        // Map and persist tags
-        Set<Tag> tags = new HashSet<>();
-        if (productDto.getTags() != null) {
-            for (String tagName : productDto.getTags()) {
-                Tag tag = tagRepo.findByName(tagName)
-                        .orElseGet(() -> {
-                            Tag newTag = new Tag();
-                            newTag.setName(tagName);
-                            return tagRepo.save(newTag);
-                        });
-                tags.add(tag);
-            }
+        try {
+            Response response = productService.createProduct(productDto);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    Response.builder()
+                            .status(400)
+                            .message(e.getMessage())
+                            .build()
+            );
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    Response.builder()
+                            .status(404)
+                            .message(e.getMessage())
+                            .build()
+            );
         }
-
-        // Associate the tags with the product
-        product.setTags(tags);
-
-        // Save the product
-        Product savedProduct = productRepo.save(product);
-
-        // Build the response object
-        Response response = Response.builder()
-                .status(200)
-                .productId(product.getId())
-                .message("Product Created Successfully")
-                .build();
-
-        // Return the response entity
-        return ResponseEntity.ok(response);
     }
 
 
@@ -202,7 +225,7 @@ public class ProductController {
 //    }
 
     @DeleteMapping("/delete/{productId}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
     public ResponseEntity<Response> deleteProduct(@PathVariable("productId") Long productId) {
         return ResponseEntity.ok(productService.deleteProduct(productId));
     }
@@ -229,7 +252,7 @@ public class ProductController {
 
     @PostMapping("/{productId}/add-images")
     @Transactional
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
     public ResponseEntity<Response> addExtraImages(
             @PathVariable Long productId,
             @RequestBody ImageUrlsRequest request

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -257,12 +258,15 @@ public class OrderItemService {
                     .orElseThrow(() -> new NotFoundException("Product not found with id: " + orderItemRequest.getProductId()));
 
             // Check total quantity for the product already ordered by the user
-            int totalOrderedQuantity = orderItemRepo.getTotalOrderedQuantityByUserAndProduct(user.getId(), product.getId());
+            List<OrderStatus> excludedStatuses = Arrays.asList(OrderStatus.CANCELLED, OrderStatus.REFUNDED);
+            int totalOrderedQuantity = orderItemRepo.getTotalOrderedQuantityByUserAndProduct(user.getId(), product.getId(), excludedStatuses);
+
+//            int totalOrderedQuantity = orderItemRepo.getTotalOrderedQuantityByUserAndProduct(user.getId(), product.getId());
             long newTotalQuantity = totalOrderedQuantity + orderItemRequest.getQuantity();
 
             // Validate that the total items per product don't exceed 5
-            if (newTotalQuantity > 5) {
-                throw new IllegalArgumentException("You can only order up to 5 items per product.");
+            if (newTotalQuantity > 10) {
+                throw new IllegalArgumentException("You can only order up to 10 items per product.");
             }
 
             // Check if requested quantity exceeds the available stock

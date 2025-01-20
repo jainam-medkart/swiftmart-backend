@@ -8,10 +8,12 @@ import com.medkart.swiftmart.dto.Response;
 import com.medkart.swiftmart.entity.Category;
 import com.medkart.swiftmart.entity.ExtraImage;
 import com.medkart.swiftmart.entity.Product;
+import com.medkart.swiftmart.entity.Tag;
 import com.medkart.swiftmart.mapper.EntityDtoMapper;
 import com.medkart.swiftmart.repository.CategoryRepo;
 import com.medkart.swiftmart.repository.ExtraImageRepo;
 import com.medkart.swiftmart.repository.ProductRepo;
+import com.medkart.swiftmart.repository.TagRepo;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ public class ProductService {
     private final EntityDtoMapper entityDtoMapper;
     private final ExtraImageRepo extraImageRepo;
     private final Cloudinary cloudinary;
+    private final TagRepo tagRepo;
 
 
     public Response createProduct(Long categoryId , String image, String name, String description, BigDecimal price, BigDecimal mrp, Long qty, Long productSize) {
@@ -312,6 +315,91 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Image not found or doesn't belong to the specified product"));
         image.setUrl(newImageUrl);
         extraImageRepo.save(image);
+    }
+
+
+    public Response createProduct(ProductDto productDto) {
+        // Validate required fields
+        validateProductDto(productDto);
+
+        // Fetch category by ID or throw exception if not found
+        Category category = categoryRepo.findById(productDto.getCategoryId())
+                .orElseThrow(() -> new NotFoundException("Category with ID " + productDto.getCategoryId() + " Not Found"));
+
+        // Create new Product and populate fields from DTO
+        Product product = new Product();
+        product.setName(productDto.getName());
+        product.setDescription(productDto.getDescription());
+        product.setPrice(productDto.getPrice());
+        product.setImageUrl(productDto.getImageUrl());
+        product.setCategory(category);
+        product.setMrp(productDto.getMrp());
+        product.setQty(productDto.getQty());
+        product.setProductSize(productDto.getProductSize());
+
+        // Map and persist tags
+        Set<Tag> tags = mapTags(productDto.getTags());
+        product.setTags(tags);
+
+        // Save the product
+        Product savedProduct = productRepo.save(product);
+
+        // Build the response object
+        return Response.builder()
+                .status(200)
+                .productId(savedProduct.getId())
+                .message("Product Created Successfully")
+                .build();
+    }
+
+    private void validateProductDto(ProductDto productDto) {
+        if (productDto.getName() == null || productDto.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Product name cannot be blank");
+        }
+
+        if (productDto.getDescription() == null || productDto.getDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("Product description cannot be blank");
+        }
+
+        if (productDto.getPrice() == null || productDto.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Product price must be greater than 0");
+        }
+
+        if (productDto.getMrp() == null || productDto.getMrp().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("MRP must be greater than 0");
+        }
+
+        if (productDto.getQty() == null || productDto.getQty() < 0) {
+            throw new IllegalArgumentException("Quantity cannot be negative");
+        }
+
+        if (productDto.getCategoryId() == null) {
+            throw new IllegalArgumentException("Category ID is required");
+        }
+
+//        if(productDto.getMrp().compareTo(productDto.getPrice()) > 0) {
+//            throw new IllegalArgumentException("Sales Price must be less than MRP");
+//        }
+        if (productDto.getMrp().compareTo(productDto.getPrice()) < 0) {
+            throw new IllegalArgumentException("Sales Price must be less than or equal to MRP");
+        }
+
+    }
+
+    private Set<Tag> mapTags(Set<String> tagNames) {
+        Set<Tag> tags = new HashSet<>();
+        if (tagNames != null) {
+            for (String tagName : tagNames) {
+                Tag tag = tagRepo.findByName(tagName)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepo.save(newTag);
+                        });
+                tags.add(tag);
+            }
+        }
+        return tags;
     }
 
 
