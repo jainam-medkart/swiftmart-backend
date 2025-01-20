@@ -5,6 +5,7 @@ import com.cloudinary.Cloudinary;
 import com.medkart.swiftmart.dto.ImageUrlsRequest;
 import com.medkart.swiftmart.dto.ProductDto;
 import com.medkart.swiftmart.dto.Response;
+import com.medkart.swiftmart.dto.ResultDTO;
 import com.medkart.swiftmart.entity.Category;
 import com.medkart.swiftmart.entity.ExtraImage;
 import com.medkart.swiftmart.entity.Product;
@@ -14,6 +15,8 @@ import com.medkart.swiftmart.repository.ProductRepo;
 import com.medkart.swiftmart.repository.TagRepo;
 import com.medkart.swiftmart.service.CategoryService;
 import com.medkart.swiftmart.service.ProductService;
+import com.medkart.swiftmart.service.impl.ProductServiceImpl;
+import com.medkart.swiftmart.service.inter.ProductServiceInterface;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,11 +40,236 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ProductController {
 
+    // Old Impl
     private final ProductService productService;
     private final CategoryRepo categoryRepo;
     private final ProductRepo productRepo;
     private final TagRepo tagRepo;
 
+
+    // New Impl
+    private final ProductServiceInterface productServiceImpl;
+
+    // Create
+    @PostMapping("/v1/create")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
+    public ResponseEntity<ResultDTO<?>> createProductNew(@RequestBody ProductDto productDto) {
+        ResultDTO<?> result = productServiceImpl.createProduct(productDto);
+
+        if (result.getStatus() == HttpStatus.CREATED.value()) {
+            return new ResponseEntity<>(result, HttpStatus.CREATED);
+        } else if (result.getStatus() == HttpStatus.BAD_REQUEST.value()) {
+            return new ResponseEntity<>(result, HttpStatus.BAD_REQUEST);
+        } else if (result.getStatus() == HttpStatus.NOT_FOUND.value()) {
+            return new ResponseEntity<>(result, HttpStatus.NOT_FOUND);
+        } else if (result.getStatus() == HttpStatus.CONFLICT.value()) {
+            return new ResponseEntity<>(result, HttpStatus.CONFLICT);
+        } else {
+            return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Fetch
+    @GetMapping("/v1/{productId}")
+    public ResponseEntity<ResultDTO<?>> getProductNew(@PathVariable Long productId) {
+        ResultDTO<?> result = productServiceImpl.getProductById(productId);
+
+        if (result.getStatus() == HttpStatus.OK.value()) {
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } else if (result.getStatus() == HttpStatus.NOT_FOUND.value()) {
+            return new ResponseEntity<>(result, HttpStatus.NOT_FOUND);
+        } else {
+            return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Get All with Pagination
+    @GetMapping("/v1")
+    public ResponseEntity<ResultDTO<?>> getAllProductsNew(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+
+        ResultDTO<?> result = productServiceImpl.getAllProducts(page, pageSize);
+
+        if (result.getStatus() == HttpStatus.OK.value()) {
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Get All by Category id
+    @GetMapping("/v1/category/{categoryId}")
+    public ResponseEntity<ResultDTO<?>> getAllProductsByCategoryIdNew(@PathVariable Long categoryId) {
+        ResultDTO<?> result = productServiceImpl.getAllProductsByCategoryId(categoryId);
+
+        if (result.getStatus() == HttpStatus.OK.value()) {
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Search Products by WS_Code or Name
+    @GetMapping("/v1/search")
+    public ResponseEntity<ResultDTO<?>> searchByIdOrNameNew(@RequestParam String searchValue) {
+        try {
+            ResultDTO<?> result = productServiceImpl.searchByIdOrName(searchValue);
+
+            if (result.getStatus() == 200) {
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (NotFoundException ex) {
+            return new ResponseEntity<>(
+                    ResultDTO.builder()
+                            .status(404)
+                            .message(ex.getMessage())
+                            .build(),
+                    HttpStatus.NOT_FOUND
+            );
+        } catch (Exception ex) {
+            return new ResponseEntity<>(
+                    ResultDTO.builder()
+                            .status(500)
+                            .message("An unexpected error occurred: " + ex.getMessage())
+                            .build(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    // Add Extra Images of a Product
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
+    @PostMapping("/v1/{productId}/extra-images")
+    public ResponseEntity<ResultDTO<?>> addExtraImagesNew(@PathVariable Long productId, @RequestBody List<String> imageUrls) {
+        try {
+            ResultDTO<?> result = productServiceImpl.addExtraImages(productId, imageUrls);
+
+            if (result.getStatus() == 200) {
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (NotFoundException ex) {
+            return new ResponseEntity<>(
+                    ResultDTO.builder()
+                            .status(404)
+                            .message(ex.getMessage())
+                            .build(),
+                    HttpStatus.NOT_FOUND
+            );
+        } catch (Exception ex) {
+            return new ResponseEntity<>(
+                    ResultDTO.builder()
+                            .status(500)
+                            .message("An unexpected error occurred: " + ex.getMessage())
+                            .build(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    // Fetch Extra Images of a Product
+    @GetMapping("/v1/{productId}/extra-images")
+    public ResponseEntity<ResultDTO<?>> getExtraImagesNew(@PathVariable Long productId) {
+        try {
+            ResultDTO<?> result = productServiceImpl.getExtraImages(productId);
+
+            if (result.getStatus() == 200) {
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (NotFoundException ex) {
+            // Handle case where no extra images are found for the given product
+            return new ResponseEntity<>(
+                    ResultDTO.builder()
+                            .status(404) // HTTP 404 Not Found
+                            .message(ex.getMessage())
+                            .build(),
+                    HttpStatus.NOT_FOUND
+            );
+        } catch (Exception ex) {
+            // Handle any unexpected errors
+            return new ResponseEntity<>(
+                    ResultDTO.builder()
+                            .status(500) // HTTP 500 Internal Server Error
+                            .message("An unexpected error occurred: " + ex.getMessage())
+                            .build(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    // Delete Extra Images of a Product
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
+    @DeleteMapping("/v1/{productId}/extra-images/{imageId}")
+    public ResponseEntity<ResultDTO<?>> deleteExtraImages(@PathVariable Long productId, @PathVariable Long imageId) {
+        try {
+            ResultDTO<?> result = productServiceImpl.deleteExtraImage(productId, imageId);
+
+            if (result.getStatus() == 200) {
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (NotFoundException ex) {
+            return new ResponseEntity<>(
+                    ResultDTO.builder()
+                            .status(404)
+                            .message(ex.getMessage())
+                            .build(),
+                    HttpStatus.NOT_FOUND
+            );
+        } catch (Exception ex) {
+            // Handle any unexpected errors
+            return new ResponseEntity<>(
+                    ResultDTO.builder()
+                            .status(500)
+                            .message("An unexpected error occurred: " + ex.getMessage())
+                            .build(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+
+
+
+//        @PutMapping("/v1/update")
+//        @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")
+//        @GetMapping("/v1/category/products/{categoryId}")
+//    public ResponseEntity<ResultDTO<?>> getProductsByCategoryNew(@PathVariable Long categoryId) {
+//        try {
+//            ResultDTO<?> result = productServiceImpl.getProductsByCategory(categoryId);
+//
+//            if (result.getStatus() == 200) {
+//                return new ResponseEntity<>(result, HttpStatus.OK);
+//            } else {
+//                return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+//            }
+//        } catch (NotFoundException ex) {
+//            // Handle case where no products are found for the given category
+//            return new ResponseEntity<>(
+//                    ResultDTO.builder()
+//                            .status(404) // HTTP 404 Not Found
+//                            .message(ex.getMessage())
+//                            .build(),
+//                    HttpStatus.NOT_FOUND
+//            );
+//        } catch (Exception ex) {
+//            // Handle any unexpected errors
+//            return new ResponseEntity<>(
+//                    ResultDTO.builder()
+//                            .status(500) // HTTP 500 Internal Server Error
+//                            .message("An unexpected error occurred: " + ex.getMessage())
+//                            .build(),
+//                    HttpStatus.INTERNAL_SERVER_ERROR
+//            );
+//        }
+//    }
 
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ROOT_ADMIN')")

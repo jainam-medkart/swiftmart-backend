@@ -15,10 +15,10 @@ import java.util.Set;
 public class Response {
 
     // We use this as template for every response
-
     private int status;
     private String message;
     private final LocalDateTime timestamp = LocalDateTime.now();
+
     private String token;
     private String role;
     private String expirationTime;

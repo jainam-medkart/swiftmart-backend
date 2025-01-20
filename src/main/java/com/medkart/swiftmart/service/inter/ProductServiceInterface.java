@@ -1,37 +1,35 @@
 package com.medkart.swiftmart.service.inter;
 
-import com.medkart.swiftmart.dto.Response;
+import com.medkart.swiftmart.dto.ProductDto;
+import com.medkart.swiftmart.dto.ResultDTO;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface ProductServiceInterface {
 
-    public Response createProduct(Long categoryId , String image, String name, String description, BigDecimal price, BigDecimal mrp, Long qty, Long productSize);
+    ResultDTO<?> createProduct(ProductDto productDto);
 
-    public Response updateProduct(Long productId , Long categoryId , String image, String name, String description, BigDecimal price, BigDecimal mrp, Long qty, Long productSize);
+    ResultDTO<?> updateProduct(Long productId, ProductDto productDto);
 
-    public Response deleteProduct(Long productId);
+    ResultDTO<?> deleteProduct(Long productId);
 
-    public Response getProductById(Long productId);
+    ResultDTO<?> getProductById(Long productId);
 
-    public Response getAllProducts();
+    ResultDTO<?> getAllProducts(int page, int pageSize);
 
-    public Response getAllProductsByCategoryId(Long categoryId);
+    ResultDTO<?> getAllProductsByCategoryId(Long categoryId);
 
-    public Response getProductsByCategory(Long categoryId);
+//    ResultDTO<?> getProductsByCategory(Long categoryId);
 
-    public Response searchByIdOrName(String searchValue);
+    ResultDTO<?> searchByIdOrName(String searchValue);
 
-    public Response addExtraImages(Long productId , List<String> imageUrls);
+    ResultDTO<?> addExtraImages(Long productId, List<String> imageUrls);
 
-    public Response getExtraImages(Long productId);
+    ResultDTO<?> getExtraImages(Long productId);
 
-    public Response deleteExtraImages(Long productId);
+//    ResultDTO<?> deleteExtraImages(Long productId, Long imageId);
 
-
-
-
-
-
+    ResultDTO<?> deleteExtraImage(Long productId, Long imageId);
 }

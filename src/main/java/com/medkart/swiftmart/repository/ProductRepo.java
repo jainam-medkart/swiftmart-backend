@@ -3,6 +3,7 @@ package com.medkart.swiftmart.repository;
 import com.medkart.swiftmart.entity.ExtraImage;
 import com.medkart.swiftmart.entity.Product;
 import jakarta.persistence.LockModeType;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,6 +26,8 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
 
     List<Product> findByWsCodeContainingOrNameContainingIgnoreCase(String wsCode, String name);
 
+    boolean existsByName(String name);
+
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Modifying
@@ -37,4 +40,5 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
     @Query("SELECT e.id, e.url FROM ExtraImage e WHERE e.product.id = :productId")
     List<Object[]> findExtraImagesByProductId(@Param("productId") Long productId);
 
+    boolean findByName(@NotBlank String name);
 }
