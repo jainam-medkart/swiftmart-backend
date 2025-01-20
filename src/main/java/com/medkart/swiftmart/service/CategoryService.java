@@ -27,6 +27,13 @@ public class CategoryService {
                     .build();
         }
 
+        if(categoryDto.getImage() == null || categoryDto.getName().isEmpty()){
+            return Response.builder()
+                    .status(400)
+                    .message("All Fields are required")
+                    .build();
+        }
+
         // Create and save the new category
         Category category = new Category();
         category.setName(categoryDto.getName());

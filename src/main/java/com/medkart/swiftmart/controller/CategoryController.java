@@ -4,6 +4,7 @@ import com.medkart.swiftmart.dto.CategoryDto;
 import com.medkart.swiftmart.dto.Response;
 import com.medkart.swiftmart.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -18,8 +19,12 @@ public class CategoryController {
     @PostMapping("/create")
     @PreAuthorize( "hasAuthority('ADMIN')")
     public ResponseEntity<Response> createCategory(@RequestBody CategoryDto categoryDto) {
-        return ResponseEntity.ok(categoryService.createCategory(categoryDto));
+        Response response = categoryService.createCategory(categoryDto);
+
+        HttpStatus status = response.getStatus() == 200 ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
+
 
     @GetMapping("/get-all")
     public ResponseEntity<Response> getAllCategories() {

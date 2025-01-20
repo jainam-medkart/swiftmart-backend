@@ -183,6 +183,66 @@ public class OrderItemService {
 //    }
 
 
+//    @Transactional
+//    public Response placeOrder(OrderRequest orderRequest) {
+//        User user = userService.getLoginUser();
+//
+//        if (user.getAddress() == null) {
+//            throw new NotFoundException("Address not found for this user. Please Update your Address first.");
+//        }
+//
+//        // Map the request items to OrderItems
+//        List<OrderItem> orderItems = orderRequest.getItems().stream().map(orderItemRequest -> {
+//            Product product = productRepo.findById(orderItemRequest.getProductId())
+//                    .orElseThrow(() -> new NotFoundException("Product not found with id: " + orderItemRequest.getProductId()));
+//
+//            // Check total quantity for the product already ordered by the user
+//            int totalOrderedQuantity = orderItemRepo.getTotalOrderedQuantityByUserAndProduct(user.getId(), product.getId());
+//            long newTotalQuantity = totalOrderedQuantity + orderItemRequest.getQuantity();
+//
+//            // Validate that the total items per product don't exceed 5
+//            if (newTotalQuantity > 5) {
+//                throw new IllegalArgumentException("You can only order up to 5 items per product.");
+//            }
+//
+//            // Check if requested quantity exceeds the available stock
+//            if (orderItemRequest.getQuantity() > product.getQty()) {
+//                throw new IllegalArgumentException("Requested quantity exceeds available stock for product: " + product.getName());
+//            }
+//
+//            // Create a new OrderItem
+//            OrderItem orderItem = new OrderItem();
+//            orderItem.setProduct(product);
+//            orderItem.setQuantity(orderItemRequest.getQuantity());
+//            orderItem.setStatus(OrderStatus.PENDING);
+//            orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(orderItemRequest.getQuantity())));
+//            orderItem.setMrp(product.getMrp());
+//            orderItem.setUser(user);
+//
+//            return orderItem;
+//        }).toList();
+//
+//        // Calculate total price
+//        BigDecimal totalPrice = orderItems.stream()
+//                .map(OrderItem::getPrice)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//        // Create a new Order and set its OrderItems
+//        Order order = new Order();
+//        order.setOrderItemList(orderItems);
+//        order.setTotalPrice(totalPrice);
+//
+//        orderItems.forEach(orderItem -> orderItem.setOrder(order));
+//
+//        // Save the order and OrderItems
+//        orderRepo.save(order);
+//
+//        return Response.builder()
+//                .status(200)
+//                .message("Order placed successfully.")
+//                .build();
+//    }
+
     @Transactional
     public Response placeOrder(OrderRequest orderRequest) {
         User user = userService.getLoginUser();
@@ -209,6 +269,10 @@ public class OrderItemService {
             if (orderItemRequest.getQuantity() > product.getQty()) {
                 throw new IllegalArgumentException("Requested quantity exceeds available stock for product: " + product.getName());
             }
+
+            // Decrease the product quantity in stock
+            product.setQty(product.getQty() - orderItemRequest.getQuantity());
+            productRepo.save(product);  // Save updated product stock
 
             // Create a new OrderItem
             OrderItem orderItem = new OrderItem();

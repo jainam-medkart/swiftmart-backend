@@ -17,7 +17,9 @@ import com.medkart.swiftmart.service.ProductService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.auth.InvalidCredentialsException;
+import org.slf4j.ILoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/product")
 @RequiredArgsConstructor
+@Slf4j
 public class ProductController {
 
     private final ProductService productService;
@@ -76,6 +79,7 @@ public class ProductController {
     // Refactor below two functions.
     @Transactional
     @PutMapping("/updatetg")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Response> updateProduct(@RequestParam Long productId, @Valid @RequestBody ProductDto productDto) {
         // Fetch the product by ID or throw exception if not found
         Product product = productRepo.findById(productId)
@@ -92,6 +96,7 @@ public class ProductController {
             product.setPrice(productDto.getPrice());
         }
         if (productDto.getImageUrl() != null) {
+            log.debug("Image URL: {}", productDto.getImageUrl());
             product.setImageUrl(productDto.getImageUrl());
         }
         if (productDto.getMrp() != null) {
@@ -141,6 +146,7 @@ public class ProductController {
 
     @PostMapping("/createtg")
     @Transactional
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Response> createProduct(@Valid @RequestBody ProductDto productDto) {
         // Fetch category by ID or throw exception if not found
         Category category = categoryRepo.findById(productDto.getCategoryId())
